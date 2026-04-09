@@ -79,12 +79,12 @@ const dbSave = async (record) => {
   }
 };
 
-const dbUpdate = async (id, record) => {
+const dbUpdate = async (supabaseId, record) => {
   try {
     const { error } = await supabase
       .from('reports')
       .update({ data: record })
-      .eq('id', id);
+      .eq('id', supabaseId);
     if (error) throw error;
     return true;
   } catch(e) {
@@ -447,10 +447,10 @@ function App() {
   const saveTour = async () => {
     if (editingReport) {
       // מצב עריכה — עדכון דוח קיים
-      const updatedRec = {...editingReport, data:{...tourData}};
-      const ok = await dbUpdate(editingReport._id, updatedRec);
+      const updatedData = {...editingReport, data:{...tourData}};
+      const ok = await dbUpdate(editingReport._id, updatedData);
       if (ok) {
-        setHistory(p => p.map(h => h.id===editingReport.id ? updatedRec : h));
+        setHistory(p => p.map(h => h._id===editingReport._id ? {...updatedData, _id:editingReport._id} : h));
         setEditingReport(null);
         setTourData(emptyTour());
         setTab('archive');
