@@ -550,67 +550,30 @@ function MainApp() {
       alert("שגיאה במחיקה");
     }
   };
+  const openPrintWindow = (htmlContent) => {
+    const printStyle = `
+      body{font-family:Arial,Helvetica,sans-serif;direction:rtl;margin:20px;background:#fff;font-size:12pt;}
+      table{border-collapse:collapse;}
+      img{max-width:95%;width:auto;height:auto;display:block;object-fit:contain;}
+      @media print{body{margin:0;} .no-print{display:none;}}
+    `;
+    const btnStyle = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f2556;color:#fff;border:none;border-radius:10px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);`;
+    const fullHTML = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>${printStyle}</style></head><body>${htmlContent}<div class="no-print"><button onclick="window.print()" style="${btnStyle}">📄 שמור / שתף PDF</button></div></body></html>`;
+    const w = window.open('','_blank');
+    if(w) { w.document.write(fullHTML); w.document.close(); }
+    else { alert("יש לאפשר חלונות קופצים בדפדפן"); }
+  };
+
   const doExportSingle = async (item) => {
-    const rawDate = item.date || '';
-    const fnameDatePart = rawDate.includes('-')
-      ? (() => { const [y,m,d] = rawDate.split('-'); return `${d}-${m}-${y}`; })()
-      : todayStr().replace(/\//g,'-');
-    const fname = `Blue-Line-${item.section}_${fnameDatePart}`;
     const bodyContent = buildReportHTML(item.data||item, item.section||section, item.type==='meeting');
-    const fullHTML = '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;direction:rtl;margin:20px;background:#fff;font-size:12pt;}table{border-collapse:collapse;}img{max-width:95%;width:auto;height:auto;display:block;object-fit:contain;}@media print{body{margin:0;}}</style></head><body>' + bodyContent + '</body></html>';
-    const blob = new Blob([fullHTML], {type:'text/html;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fname + '.html';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    openPrintWindow(bodyContent);
   };
 
   const doExport = async (all=false) => {
     const items = all ? history : [{type:'tour', section, date:tourData.date, time:tourData.time, data:tourData}];
     if(items.length===0) return alert("אין נתונים לייצוא");
-    const rawDate = tourData.date || '';
-    const fnameDatePart = rawDate.includes('-')
-      ? (() => { const [y,m,d] = rawDate.split('-'); return `${d}-${m}-${y}`; })()
-      : todayStr().replace(/\//g,'-');
-    const fname = `Blue-Line-${section}_${fnameDatePart}`;
-    const buildAll = () => items.map(d=>buildReportHTML(d.data||d, d.section||section, d.type==='meeting')).join('<div style="page-break-before:always;margin-top:40px;"></div>');
-
-    /* Loading overlay */
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,37,86,0.75);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;font-family:Heebo,sans-serif;';
-    overlay.innerHTML = '<div style="font-size:48px;margin-bottom:16px">⏳</div><div style="font-size:18px;font-weight:700">מכין את הדוח...</div>';
-    document.body.appendChild(overlay);
-
-    try {
-      const bodyContent = buildAll();
-      const fullHTML = '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;direction:rtl;margin:20px;background:#fff;font-size:12pt;}table{border-collapse:collapse;}img{max-width:95%;width:auto;height:auto;display:block;object-fit:contain;image-rendering:high-quality;}@media print{body{margin:0;}}</style></head><body>' + bodyContent + '</body></html>';
-
-      /* Android Capacitor path */
-      if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-        const { Filesystem, Share } = window.Capacitor.Plugins;
-        const b64 = btoa(unescape(encodeURIComponent(fullHTML)));
-        await Filesystem.writeFile({ path: fname + '.html', data: b64, directory: 'CACHE', recursive: true });
-        const { uri } = await Filesystem.getUri({ directory: 'CACHE', path: fname + '.html' });
-        document.body.removeChild(overlay);
-        await Share.share({ title: 'דוח סיור — ' + fname, text: 'דוח הנדסי', url: uri, dialogTitle: 'שתף את הדוח' });
-        return;
-      }
-
-      /* Browser fallback */
-      document.body.removeChild(overlay);
-      const blob = new Blob([fullHTML], {type:'text/html;charset=utf-8'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = fname + '.html';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-
-    } catch(err) {
-      if(document.body.contains(overlay)) document.body.removeChild(overlay);
-      console.error('Export error:', err);
-      alert('שגיאה: ' + (err && err.message ? err.message : String(err)));
-    }
+    const bodyContent = items.map(d=>buildReportHTML(d.data||d, d.section||section, d.type==='meeting')).join('<div style="page-break-before:always;margin-top:40px;"></div>');
+    openPrintWindow(bodyContent);
   };
 
   const TABS = [{id:"status",label:"🏗️ סטטוס שטח"},{id:"violations",label:"🦺 ליקויים"},{id:"meetings",label:"📝 ישיבות"},{id:"archive",label:"📁 ארכיון"},{id:"stats",label:"📊 סטטיסטיקה"}];
@@ -1041,7 +1004,7 @@ function MainApp() {
                                         <button onClick={(e)=>{e.stopPropagation();doExportSingle(h);}}
                                           style={{flex:1,background:"#3d2b1f",color:"#f5f0e8",border:"none",borderRadius:8,
                                             padding:"8px 16px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>
-                                          📥 ייצא HTML
+                                          📄 הפק דו"ח
                                         </button>
                                         <button onClick={(e)=>{
                                           e.stopPropagation();
@@ -1118,7 +1081,7 @@ function MainApp() {
               <button onClick={()=>{if(confirm('לנקות את כל נתוני הסיור?'))setTourData(emptyTour())}} style={{fontSize:12,color:"#94a3b8",background:"none",border:"none",cursor:"pointer",fontFamily:"Heebo,sans-serif",textDecoration:"underline"}}>נקה נתונים</button>
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>doExport(false)} style={{flex:1,background:"#0f2556",color:"#fff",border:"none",borderRadius:10,padding:"12px",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>📥 הפק דוח (HTML)</button>
+              <button onClick={()=>doExport(false)} style={{flex:1,background:"#0f2556",color:"#fff",border:"none",borderRadius:10,padding:"12px",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>📄 הפק דו"ח</button>
               <button onClick={saveTour} style={{flex:1,background:editingReport?"#2563eb":"#16a34a",color:"#fff",border:"none",borderRadius:10,padding:"12px",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>{editingReport?"💾 שמור שינויים":"✅ שמור לארכיון"}</button>
             </div>
           </div>
