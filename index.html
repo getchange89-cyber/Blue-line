@@ -78,6 +78,20 @@ const dbSave = async (record) => {
   }
 };
 
+const dbDelete = async (supabaseId) => {
+  try {
+    const { error } = await supabase
+      .from('reports')
+      .delete()
+      .eq('id', supabaseId);
+    if (error) throw error;
+    return true;
+  } catch(e) {
+    console.error('Delete error:', e);
+    return false;
+  }
+};
+
 const dbUpdate = async (supabaseId, record) => {
   try {
     const { error } = await supabase
@@ -169,8 +183,40 @@ const compressImage = (file, callback) => {
   reader.readAsDataURL(file);
 };
 
-/* ─────────────────────────────────────────────
-   REPORT GENERATOR  
+const APP_PASSWORD = 'GoodDay';
+
+function PasswordScreen({onSuccess}) {
+  const [pwd, setPwd] = React.useState('');
+  const [error, setError] = React.useState(false);
+  const check = () => {
+    if(pwd === APP_PASSWORD) { onSuccess(); }
+    else { setError(true); setPwd(''); setTimeout(()=>setError(false),2000); }
+  };
+  return (
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f2556,#1a3a8f)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"#fff",borderRadius:16,padding:"36px 28px",width:300,textAlign:"center",boxShadow:"0 8px 32px rgba(0,0,0,.3)"}}>
+        <img src={LOGO_B64} style={{height:60,marginBottom:16,borderRadius:8,padding:6,background:"#0f2556"}} />
+        <div style={{fontSize:18,fontWeight:800,color:"#0f2556",marginBottom:4}}>דוח סיור הנדסי</div>
+        <div style={{fontSize:12,color:"#64748b",marginBottom:24}}>אהוד לויתן הנדסה</div>
+        <input
+          type="password"
+          value={pwd}
+          onChange={e=>setPwd(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&check()}
+          placeholder="סיסמה"
+          style={{textAlign:"center",marginBottom:12,fontSize:18,letterSpacing:4,border:`1.5px solid ${error?"#dc2626":"#e2e8f0"}`,background:error?"#fef2f2":"#fff"}}
+        />
+        {error && <div style={{color:"#dc2626",fontSize:13,fontWeight:700,marginBottom:8}}>סיסמה שגויה</div>}
+        <button onClick={check}
+          style={{width:"100%",background:"#0f2556",color:"#fff",border:"none",borderRadius:10,padding:"12px",fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>
+          כניסה
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
    Beautiful, structured, RTL-safe report
 ───────────────────────────────────────────── */
 const buildReportHTML = (tourData, section, isMeeting = false) => {
@@ -399,6 +445,14 @@ const emptyTour = () => ({
        MAIN APP
 ═══════════════════════════════ */
 function App() {
+  const [authenticated, setAuthenticated] = React.useState(false);
+
+  if(!authenticated) return <PasswordScreen onSuccess={()=>setAuthenticated(true)} />;
+
+  return <MainApp />;
+}
+
+function MainApp() {
   const [tab, setTab] = useState('status');
   const [archiveFilter, setArchiveFilter] = useState('all');
   const [selectedReport, setSelectedReport] = useState(null);
@@ -483,7 +537,18 @@ function App() {
     }
   };
 
-  /* ── WORD EXPORT ONLY ── */
+  const deleteReport = async (h) => {
+    if(!confirm(`למחוק את הדוח של מקטע ${h.section} מתאריך ${h.date}?`)) return;
+    const supabaseId = h._supabase_id || h._id;
+    const ok = await dbDelete(supabaseId);
+    if(ok) {
+      setHistory(p => p.filter(r => r._id !== h._id));
+      setSelectedReport(null);
+      alert("הדוח נמחק ✅");
+    } else {
+      alert("שגיאה במחיקה");
+    }
+  };
   const doExportSingle = async (item) => {
     const rawDate = item.date || '';
     const fnameDatePart = rawDate.includes('-')
@@ -987,6 +1052,11 @@ function App() {
                                           style={{flex:1,background:"#2563eb",color:"#fff",border:"none",borderRadius:8,
                                             padding:"8px 16px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>
                                           ✏️ ערוך דוח
+                                        </button>
+                                        <button onClick={(e)=>{e.stopPropagation();deleteReport(h);}}
+                                          style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:8,
+                                            padding:"8px 12px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Heebo,sans-serif"}}>
+                                          🗑️
                                         </button>
                                         </div>
                                       </div>
