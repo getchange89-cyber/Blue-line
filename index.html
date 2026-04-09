@@ -55,7 +55,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const dbLoad = async () => {
   try {
     const { data, error } = await supabase
-      .from('Blu-Line')
+      .from('reports')
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -69,7 +69,7 @@ const dbLoad = async () => {
 const dbSave = async (record) => {
   try {
     const { error } = await supabase
-      .from('Blu-Line')
+      .from('reports')
       .insert([{ data: record }]);
     if (error) throw error;
     return true;
@@ -82,7 +82,7 @@ const dbSave = async (record) => {
 const dbUpdate = async (id, record) => {
   try {
     const { error } = await supabase
-      .from('Blu-Line')
+      .from('reports')
       .update({ data: record })
       .eq('id', id);
     if (error) throw error;
