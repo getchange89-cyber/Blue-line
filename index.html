@@ -551,10 +551,16 @@ function MainApp() {
     }
   };
   const openPrintWindow = (htmlContent) => {
-    const fullHTML = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;direction:rtl;margin:20px;background:#fff;font-size:12pt;}table{border-collapse:collapse;}img{max-width:95%;width:auto;height:auto;display:block;object-fit:contain;}</style></head><body>${htmlContent}</body></html>`;
-    const w = window.open('','_blank');
-    if(w) { w.document.write(fullHTML); w.document.close(); }
-    else { alert("יש לאפשר חלונות קופצים בדפדפן"); }
+    const fullHTML = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:Arial,Helvetica,sans-serif;direction:rtl;margin:20px;background:#fff;font-size:12pt;}table{border-collapse:collapse;}img{max-width:95%;width:auto;height:auto;display:block;object-fit:contain;}@media print{body{margin:0;}}</style></head><body>${htmlContent}</body></html>`;
+    const blob = new Blob([fullHTML], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BlueLine-Report.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
   };
 
   const doExportSingle = async (item) => {
