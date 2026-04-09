@@ -555,10 +555,19 @@ function MainApp() {
       body{font-family:Arial,Helvetica,sans-serif;direction:rtl;margin:20px;background:#fff;font-size:12pt;}
       table{border-collapse:collapse;}
       img{max-width:95%;width:auto;height:auto;display:block;object-fit:contain;}
-      @media print{body{margin:0;} .no-print{display:none;}}
+      @media print{.no-print{display:none;}}
+      .share-bar{position:fixed;bottom:0;left:0;right:0;background:#0f2556;padding:14px 20px;display:flex;gap:10px;justify-content:center;z-index:9999;}
+      .share-btn{background:#fff;color:#0f2556;border:none;border-radius:10px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;}
+      .share-btn.pdf{background:#dc2626;color:#fff;}
     `;
-    const btnStyle = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f2556;color:#fff;border:none;border-radius:10px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);`;
-    const fullHTML = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>${printStyle}</style></head><body>${htmlContent}<div class="no-print"><button onclick="window.print()" style="${btnStyle}">📄 שמור / שתף PDF</button></div></body></html>`;
+    const shareBar = `
+      <div class="share-bar no-print">
+        <button class="share-btn pdf" onclick="window.print()">🖨️ שמור PDF / הדפס</button>
+        <button class="share-btn" onclick="window.close()">✕ סגור</button>
+      </div>
+      <div style="height:70px"></div>
+    `;
+    const fullHTML = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>${printStyle}</style></head><body>${htmlContent}${shareBar}</body></html>`;
     const w = window.open('','_blank');
     if(w) { w.document.write(fullHTML); w.document.close(); }
     else { alert("יש לאפשר חלונות קופצים בדפדפן"); }
